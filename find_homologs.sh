@@ -1,32 +1,21 @@
 #!/bin/bash
 
-# Ensure that  three arguments are passed
-if [[ "$#" -ne 3 ]]; then
-    echo "Usage: $0 <query_file> <subject_file> <output_file>"
-    exit 1
-fi
 
-# Define input and output files
-query_file="$1"
-subject_file="$2"
-output_file="$3"
 
-# Temporary file to store BLAST results
-temporary_file="blast_temp_output.txt"
+# Input files
+queryFile="$1"
+subjectFile="$2"
+outputFile="$3"
 
-# Run BLAST and format output for filtering
-blastn -query "$query_file" -subject "$subject_file" -outfmt "6 qseqid sseqid pident length qlen slen" -out "$temporary_file"
+# Run tblastn and save results to a file
+tblastn -query "$queryFile" -subject "$subjectFile" -outfmt "6 qseqid sseqid pident length" > blast_results.txt
 
-# Filter perfect matches (100% identity and matching lengths) and save to the output file
-awk '$3 == 100 && $4 == $5' "$temporary_file" > "$output_file"
+# Filter results: Keep hits with >30% identity and >90% of the query length
+awk '$3 > 30 && $4 > 0.9 * length($1)' blast_results.txt > "$outputFile"
 
-# Count the number of perfect matches and display the result
-match_count=$(wc -l < "$output_file")
-echo "Perfect matches found: $match_count"
+# Count the number of matches
+numMatches=$(wc -l < "$outputFile")
+echo "Number of matches identified: $numMatches"
 
-# Display the result specifying the input files
-echo "Perfect matches found between $query_file and $subject_file: $match_count"
 
-# Clean up the temporary file
-rm "$temporary_file"
 
